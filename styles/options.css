@@ -1,0 +1,272 @@
+:root {
+    /* Paleta de Cores ICD */
+    --primary-color: #612d87; /* Roxo Principal */
+    --primary-hover: #4a2168;
+    --secondary-color: #FF9800; /* Laranja Destaque */
+    --bg-color: #f4f7f6;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --text-light: #777777;
+    --border-color: #e1e8ed;
+    --success-color: #25D366; /* Verde WhatsApp */
+    --danger-color: #e74c3c;
+    --info-color: #34B7F1; /* Azul Secundário */
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* --- CABEÇALHO --- */
+header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+header h1 {
+    color: var(--primary-color);
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+header p {
+    color: var(--text-light);
+    margin: 0;
+    font-size: 16px;
+}
+
+/* --- GRID DE LAYOUT --- */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr; /* Coluna da direita é maior */
+    gap: 30px;
+}
+
+@media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+}
+
+/* --- CARDS (Containers) --- */
+.card {
+    background-color: var(--card-bg);
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.card h2 {
+    color: var(--primary-color);
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--secondary-color);
+    padding-left: 10px;
+}
+
+/* --- FORMULÁRIOS --- */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--text-light);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-sizing: border-box; 
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(97, 45, 135, 0.1);
+}
+
+textarea {
+    resize: vertical; 
+}
+
+/* --- BOTÕES --- */
+button {
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.btn-add {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-add:hover {
+    background-color: #e68a00;
+    transform: translateY(-1px);
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-sec {
+    flex: 1;
+    padding: 10px;
+    color: white;
+}
+
+#btnExportar { background-color: var(--info-color); }
+#btnExportar:hover { background-color: #2da1d4; }
+
+#btnImportar { background-color: var(--success-color); }
+#btnImportar:hover { background-color: #1eb957; }
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 25px 0;
+}
+
+/* --- LISTA DE BOTÕES (COLUNA DIREITA) --- */
+.lista-botoes {
+    max-height: 400px; /* Limita a altura e cria rolagem */
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.item-lista {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #fbfcfc;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: background-color 0.2s;
+}
+
+.item-lista:hover {
+    background-color: #f1f3f4;
+}
+
+.item-lista .info {
+    flex: 1;
+    margin-right: 15px;
+}
+
+.item-lista strong {
+    color: var(--text-color);
+    font-size: 14px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.item-lista p {
+    color: var(--text-light);
+    font-size: 12px;
+    margin: 0;
+    /* Corta texto muito longo */
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.btn-del {
+    padding: 6px 12px;
+    background-color: transparent;
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    font-size: 12px;
+}
+
+.btn-del:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.acoes {
+    display: flex;
+    gap: 5px;
+}
+.btn-edit {
+    padding: 6px 12px;
+    background-color: var(--info-color);
+    color: white;
+    font-size: 12px;
+}
+
+
+.item-lista {
+    cursor: grab; /* Muda o cursor para uma mãozinha */
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    margin-bottom: 8px;
+    padding: 10px 15px;
+    border-radius: 8px;
+}
+
+.item-lista:active {
+    cursor: grabbing;
+}
+
+.drag-handle {
+    color: #ccc;
+    font-size: 20px;
+    user-select: none;
+    padding-right: 10px;
+    border-right: 1px solid #eee;
+}
+
+.item-lista:hover .drag-handle {
+    color: var(--primary-color);
+}
+
+.lista-botoes::-webkit-scrollbar { width: 6px; }
+.lista-botoes::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+.lista-botoes::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+.lista-botoes::-webkit-scrollbar-thumb:hover { background: #999; }

@@ -1,0 +1,85 @@
+{
+  "manifest_version": 3,
+  "name": "ICD Hub - Integrador Universal",
+  "version": "2.0",
+  "description": "Desenvolvido por : Bruno Ferreira",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://admin.tourcms.com/*",
+    "https://www.ingressocomdesconto.com.br/*",
+    "https://*.ingressocomdesconto.com.br/*",
+    "*://hub.headout.com/*",
+    "https://*.postimg.cc/*",
+    "https://*.whatsapp.com/*",
+    "https://web.whatsapp.com/*",
+    "https://supplier.getyourguide.com/*",
+    "https://webmail-seguro.com.br/*",
+    "https://webmail.locaweb.com.br/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://admin.tourcms.com/admin/bookings/bookings_edit.php?bid=*"],
+      "js": ["scripts/grayline_extract.js"]
+    },
+    {
+      "matches": ["*://hub.headout.com/*"],
+      "js": ["scripts/headout_extract.js"]
+    },
+    {
+      "matches": ["https://supplier.getyourguide.com/bookings/*"],
+      "js": ["scripts/gyg_extract.js"]
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["scripts/whatsapp_tool.js"],
+      "css": ["styles/whatsapp.css"]
+    },
+    {
+      "matches": ["*://*.ingressocomdesconto.com.br/*"],
+      "js": ["scripts/ingresso_master.js"],
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://webmail-seguro.com.br/*",
+        "https://webmail.locaweb.com.br/*"
+      ],
+      "js": ["scripts/mail_tool.js"]
+    },
+    {
+      "matches": ["https://www.ingressocomdesconto.com.br/adm/paginas/relatorio_previsaovisitas.asp*"],
+      "js": ["scripts/relatorio_tool.js"]
+    },
+    {
+      "matches": ["https://www.ingressocomdesconto.com.br/adm/paginas/voucher.asp*"],
+      "js": ["scripts/enviar_voucher.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icon.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

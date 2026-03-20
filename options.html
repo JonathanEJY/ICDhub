@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Controle - ICD Hub</title>
+    <link rel="stylesheet" href="styles/options.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚙️ Painel de Controle - ICD Hub</h1>
+            <p>Personalize sua experiência de automação e atalhos.</p>
+        </header>
+
+        <div class="grid">
+            <div class="column">
+                
+                <div class="card">
+                    <h2>🖥️ Interface do WhatsApp</h2>
+                    <div class="form-group">
+                        <label>Posição da Barra Lateral</label>
+                        <select id="posicaoBarra" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; background: white;">
+                            <option value="direita">Direita (Padrão)</option>
+                            <option value="esquerda">Esquerda</option>
+                            <option value="topo">Topo / Superior</option>
+                        </select>
+                    </div>
+                    <button id="btnSalvarPref" class="btn-add" style="background: #34B7F1; margin-bottom: 0;">💾 Salvar Preferência de Local</button>
+                </div>
+
+                <div class="card">
+                    <h2 id="tituloForm">➕ Gerenciar Atalho</h2>
+                    <input type="hidden" id="editIndex" value="-1">
+                    
+                    <div class="form-group">
+                        <label>Nome do Botão</label>
+                        <input type="text" id="novoNomeBotao" placeholder="Ex: PIX CORCOVADO">
+                    </div>
+
+                    <div class="form-group">
+                        <label>URL da Imagem (Opcional)</label>
+                        <input type="text" id="novaImagemBotao" placeholder="https://link-da-imagem.jpg">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Texto da Mensagem</label>
+                        <textarea id="novoTextoBotao" rows="8" placeholder="Digite a mensagem que será enviada..."></textarea>
+                    </div>
+
+                    <button id="btnAdicionarBotao" class="btn-add">Salvar Atalho</button>
+                    <button id="btnCancelarEdicao" class="btn-sec" style="display:none; background:#999; margin-top:10px; width: 100%; color: white; padding: 10px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer;">Cancelar Edição</button>
+                </div>
+            </div>
+
+            <div class="column">
+                <div class="card">
+                    <h2>📋 Seus Atalhos (Arraste para Reordenar)</h2>
+                    <div id="listaBotoes" class="lista-botoes"></div>
+                </div>
+
+                <div class="card">
+                    <h2>📧 Configuração de E-mail (Relatório)</h2>
+                    <div class="form-group">
+                        <label>Assunto do E-mail</label>
+                        <input type="text" id="emailAssuntoPadrao" placeholder="Ex: Confirmação de Visita - ICD">
+                    </div>
+                    <div class="form-group">
+                        <label>Corpo do E-mail (Mensagem)</label>
+                        <textarea id="emailCorpoPadrao" rows="6" placeholder="Olá {cliente}, sua visita está confirmada..."></textarea>
+                        <small style="color: #666; font-size: 11px; display: block; margin-top: 5px;">
+                            Dica: Use <b>{cliente}</b> para personalizar o nome automaticamente.
+                        </small>
+                    </div>
+                    <button id="btnSalvarEmailConfig" class="btn-add" style="background: #612d87; margin-bottom: 0;">💾 Salvar Mensagem de E-mail</button>
+                </div>
+
+                <div class="card">
+                    <h2>💾 Backup e Segurança</h2>
+                    <div class="btn-group">
+                        <button id="btnExportar" class="btn-sec" style="background: #34B7F1;">📤 Exportar Backup</button>
+                        <button id="btnImportar" class="btn-sec" style="background: #25D366;">📥 Importar Backup</button>
+                    </div>
+                    <input type="file" id="inputArquivo" style="display: none;" accept=".json">
+                </div>
+
+                <div class="status" style="text-align: center; margin-top: 20px; color: #777; font-size: 12px;">
+                    ICD Hub v2.0 | Desenvolvido por Bruno Ferreira
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/options.js"></script>
+</body>
+</html>

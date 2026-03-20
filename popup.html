@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 350px; font-family: sans-serif; padding: 15px; background: #f4f4f9; }
+    h2 { color: #612d87; font-size: 18px; margin: 0 0 15px 0; text-align: center; }
+    .card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    label { font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 5px; text-transform: uppercase; }
+    input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; margin-bottom: 10px; font-family: inherit; }
+    
+    .btn-main { width: 100%; padding: 10px; background: #612d87; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-add { background: #25D366; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
+    
+    .btn-group { display: flex; gap: 5px; }
+    .btn-sec { flex: 1; padding: 8px; font-size: 11px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; }
+    
+    #listaBotoes { margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px; }
+    .item-botao { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px; border-bottom: 1px solid #f9f9f9; }
+    .btn-del { color: red; cursor: pointer; font-weight: bold; border: none; background: none; }
+    
+    .status { font-size: 11px; color: #666; text-align: center; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>ICD Hub - Gerenciador</h2>
+  
+  <div class="card">
+    <label>Seu Nome (Operador)</label>
+    <input type="text" id="nomeOperador" placeholder="Ex: BRUNO">
+    <button id="btnSalvarNome" class="btn-main">Salvar Nome</button>
+  </div>
+
+  <div class="card">
+    <label>Novo Botão de Atalho</label>
+    <input type="text" id="novoNomeBotao" placeholder="Nome do Botão (Ex: PIX)">
+    <textarea id="novoTextoBotao" rows="3" placeholder="Texto que será enviado no WhatsApp..."></textarea>
+    <button id="btnAdicionarBotao" class="btn-add">+ Adicionar Botão</button>
+    
+    <label>Botões Atuais</label>
+    <div id="listaBotoes"></div>
+  </div>
+
+  <button id="btnAbrirConfig" class="btn-main">⚙️ Configurar Botões (Tela Cheia)</button>
+
+  <br>
+  <br>
+
+  <div class="card">
+  <label>BACKUP DOS BOTÕES</label>
+  <div class="btn-group" style="display: flex; gap: 10px; margin-top: 5px;">
+    <button id="btnExportar" class="btn-sec" style="background: #34B7F1; flex: 1; padding: 10px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📤 Salvar Arquivo</button>
+    <button id="btnImportar" class="btn-sec" style="background: #25D366; flex: 1; padding: 10px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📥 Abrir Arquivo</button>
+  </div>
+  <input type="file" id="inputArquivo" style="display: none;" accept=".json">
+</div>
+
+  <div class="status" id="statusMsg">Desenvolvido por <a href="https://github.com/bruninho182" target="_blank">Bruno Ferreira</a> </div> 
+
+  <script src="popup.js"></script>
+</body>
+</html>
