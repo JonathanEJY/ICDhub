@@ -250,7 +250,6 @@ function abrirCalculadoraCotacao() {
             if(!temItens) return alert("Adicione pelo menos 1 ingresso!");
 
             texto += `\n*💰 TOTAL: R$ ${total.toLocaleString('pt-br', {minimumFractionDigits: 2})}*`;
-            texto += `\n\n_Valores sujeitos a alteração de disponibilidade._`;
             
             navigator.clipboard.writeText(texto);
             alert("Orçamento copiado! Agora é só colar (Ctrl+V) no WhatsApp.");

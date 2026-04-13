@@ -8,9 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSalvarPref = document.getElementById('btnSalvarPref');
     
     let configBotoes = [];
-    let dragSrcIndex = null; // Controle de arrasto
+    let dragSrcIndex = null; 
 
-    chrome.storage.local.get(['configMaster', 'posicaoBarra'], (res) => {
+    chrome.storage.local.get(['configMaster', 'posicaoBarra', 'emailAssunto', 'emailCorpo'], (res) => {
         if (res.configMaster) {
             configBotoes = res.configMaster;
             renderizarLista();
@@ -18,8 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.posicaoBarra) {
             seletorPosicao.value = res.posicaoBarra;
         }
+        if (res.emailAssunto) document.getElementById('emailAssuntoPadrao').value = res.emailAssunto;
+        if (res.emailCorpo) document.getElementById('emailCorpoPadrao').value = res.emailCorpo;
     });
 
+    // Salvar Preferência de Posição
     btnSalvarPref.onclick = () => {
         const posicao = seletorPosicao.value;
         chrome.storage.local.set({ posicaoBarra: posicao }, () => {
@@ -27,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Adicionar/Editar Botão
     document.getElementById('btnAdicionarBotao').onclick = () => {
         const nome = document.getElementById('novoNomeBotao').value.trim();
         const texto = document.getElementById('novoTextoBotao').value.trim();
@@ -85,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
             listaBotoesDiv.appendChild(item);
         });
 
-
         document.querySelectorAll('.btn-edit').forEach(b => {
             b.onclick = (e) => preencherParaEditar(e.target.dataset.index);
         });
@@ -100,22 +103,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- LÓGICA DE ARRASTAR ---
     function handleDragStart(e) {
         dragSrcIndex = this.dataset.index;
         this.style.opacity = '0.4';
         e.dataTransfer.effectAllowed = 'move';
     }
-
     function handleDragOver(e) {
         if (e.preventDefault) e.preventDefault();
         return false;
     }
-
     function handleDrop(e) {
         if (e.stopPropagation) e.stopPropagation();
-        
         const targetIndex = this.dataset.index;
-
         if (dragSrcIndex !== targetIndex) {
             const movedItem = configBotoes.splice(dragSrcIndex, 1)[0];
             configBotoes.splice(targetIndex, 0, movedItem);
@@ -123,10 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return false;
     }
-
-    function handleDragEnd() {
-        this.style.opacity = '1';
-    }
+    function handleDragEnd() { this.style.opacity = '1'; }
 
     function preencherParaEditar(index) {
         const btn = configBotoes[index];
@@ -134,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('novoTextoBotao').value = btn.texto;
         document.getElementById('novaImagemBotao').value = btn.imagem || "";
         editIndexField.value = index;
-        
         tituloForm.innerText = "📝 Editando Atalho";
         btnCancelar.style.display = "block";
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -157,17 +153,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // =========================================================
+    // 📦 BACKUP ATUALIZADO (EXPORTA TUDO: BOTÕES + PASSEIOS + CONFIGS)
+    // =========================================================
     document.getElementById('btnExportar').onclick = () => {
-        if (configBotoes.length === 0) return alert("Não há dados para exportar.");
-        const blob = new Blob([JSON.stringify(configBotoes, null, 2)], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; 
-        a.download = 'backup_botoes_icd.json'; 
-        a.click();
-        URL.revokeObjectURL(url);
+        chrome.storage.local.get(null, (todosOsDados) => {
+            if (Object.keys(todosOsDados).length === 0) return alert("Não há dados para exportar.");
+            
+            const blob = new Blob([JSON.stringify(todosOsDados, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dataHora = new Date().toLocaleDateString().replace(/\//g, '-');
+            
+            a.href = url; 
+            a.download = `backup_completo_icd_hub_${dataHora}.json`; 
+            a.click();
+            URL.revokeObjectURL(url);
+            console.log("✅ Backup completo gerado.");
+        });
     };
 
+    // ======================
+    // 📥 IMPORTAÇÃO 
+    // ======================
     document.getElementById('btnImportar').onclick = () => inputArquivo.click();
     
     inputArquivo.onchange = (e) => {
@@ -177,42 +185,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const reader = new FileReader();
         reader.onload = (ev) => {
             try {
-                const dados = JSON.parse(ev.target.result);
-                if (Array.isArray(dados)) {
-                    configBotoes = dados;
-                    salvar();
-                    alert("✅ Importação concluída com sucesso!");
-                }
+                const dadosRestaurados = JSON.parse(ev.target.result);
+                
+                chrome.storage.local.set(dadosRestaurados, () => {
+                    alert("✅ Todas as configurações e tarifários foram restaurados!");
+                    location.reload(); 
+                });
             } catch (err) {
-                alert("Erro ao ler o arquivo.");
+                alert("❌ Erro ao ler o arquivo. Verifique se é um backup válido.");
             }
         };
         reader.readAsText(arquivo);
         inputArquivo.value = "";
     };
+
+    document.getElementById('btnSalvarEmailConfig').onclick = () => {
+        const assunto = document.getElementById('emailAssuntoPadrao').value;
+        const corpo = document.getElementById('emailCorpoPadrao').value;
+        chrome.storage.local.set({ emailAssunto: assunto, emailCorpo: corpo }, () => {
+            alert("✅ Configurações de e-mail salvas!");
+        });
+    };
 });
-
-chrome.storage.local.get(['emailAssunto', 'emailCorpo'], (res) => {
-    if (res.emailAssunto) document.getElementById('emailAssuntoPadrao').value = res.emailAssunto;
-    if (res.emailCorpo) document.getElementById('emailCorpoPadrao').value = res.emailCorpo;
-});
-
-
-document.getElementById('btnSalvarEmailConfig').onclick = () => {
-    const assunto = document.getElementById('emailAssuntoPadrao').value;
-    const corpo = document.getElementById('emailCorpoPadrao').value;
-    chrome.storage.local.set({ emailAssunto: assunto, emailCorpo: corpo }, () => {
-        alert("Configurações de e-mail salvas!");
-    });
-};
 
 /* =========================================================
-   LÓGICA DA CALCULADORA DE COTAÇÃO (OPÇÕES COM EDIÇÃO)
+   CALCULADORA DE COTAÇÃO (TARIFÁRIOS)
    ========================================================= */
 
-let editPasseioIndex = -1; // -1 significa que estamos criando um novo
+let editPasseioIndex = -1; 
 
-// 1. Adicionar nova linha de Categoria de Preço
 document.getElementById('btn-add-tipo').onclick = () => {
     adicionarLinhaPreco("", "");
 };
@@ -231,7 +232,6 @@ function adicionarLinhaPreco(tipo = "", valor = "") {
     novaLinha.querySelector('.btn-remover-preco').onclick = () => novaLinha.remove();
 }
 
-// 2. Salvar ou Atualizar o Passeio
 document.getElementById('btn-salvar-passeio').onclick = () => {
     const nome = document.getElementById('nomePasseio').value;
     const tipos = document.querySelectorAll('.tipo-ingresso');
@@ -256,10 +256,8 @@ document.getElementById('btn-salvar-passeio').onclick = () => {
         let lista = res.listaPasseios || [];
 
         if (editPasseioIndex === -1) {
-            // NOVO PASSEIO
             lista.push({ nome, ingressos });
         } else {
-            // EDITANDO EXISTENTE
             lista[editPasseioIndex] = { nome, ingressos };
             editPasseioIndex = -1;
             btnSalvar.innerText = "Salvar Passeio";
@@ -267,7 +265,7 @@ document.getElementById('btn-salvar-passeio').onclick = () => {
         }
         
         chrome.storage.local.set({ listaPasseios: lista }, () => {
-            alert("Passeio salvo com sucesso!");
+            alert("✅ Passeio salvo com sucesso!");
             limparFormularioPasseio();
             renderizarListaPasseios();
         });
@@ -284,7 +282,6 @@ function limparFormularioPasseio() {
     `;
 }
 
-// 3. Renderizar a lista com botões de Editar e Excluir
 function renderizarListaPasseios() {
     chrome.storage.local.get(['listaPasseios'], (res) => {
         const container = document.getElementById('lista-passeios-config');
@@ -307,7 +304,6 @@ function renderizarListaPasseios() {
             container.appendChild(item);
         });
 
-        // Evento EXCLUIR
         container.querySelectorAll('.btn-excluir-p').forEach(btn => {
             btn.onclick = (e) => {
                 if(confirm("Tem certeza que deseja excluir este passeio?")) {
@@ -318,33 +314,24 @@ function renderizarListaPasseios() {
             };
         });
 
-        // Evento EDITAR
         container.querySelectorAll('.btn-editar-p').forEach(btn => {
             btn.onclick = (e) => {
                 const idx = e.target.dataset.index;
                 const p = lista[idx];
-                
-                // Preenche o formulário
                 document.getElementById('nomePasseio').value = p.nome;
                 const containerPrecos = document.getElementById('container-precos');
-                containerPrecos.innerHTML = ""; // Limpa atuais
-                
+                containerPrecos.innerHTML = ""; 
                 p.ingressos.forEach(ing => {
                     adicionarLinhaPreco(ing.tipo, ing.valor);
                 });
-
-                // Muda o estado para edição
                 editPasseioIndex = idx;
                 const btnSalvar = document.getElementById('btn-salvar-passeio');
                 btnSalvar.innerText = "Confirmar Alteração";
                 btnSalvar.style.background = "#ffa500";
-                
-                // Scroll para o topo do formulário
                 document.getElementById('nomePasseio').scrollIntoView({ behavior: 'smooth' });
             };
         });
     });
 }
 
-// Inicializa a lista
 renderizarListaPasseios();
