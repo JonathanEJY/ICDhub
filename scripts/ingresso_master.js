@@ -1,5 +1,4 @@
-console.log("✅ ICD Hub: Maestro do Ingresso com Desconto Ativado (Versão Híbrida 2.5)");
-
+console.log("✅ ICD Hub: Ativado");
 
 chrome.storage.local.get(["dadosPedido", "nomeOperador", "bridgeData", "reservaGrayline", "usuarioConfigurado"], (res) => {
     executarComTentativas(res);
@@ -18,6 +17,7 @@ function executarComTentativas(res) {
     const intervalo = setInterval(() => {
         const sucesso = executarPreenchimento(res);
         tentativas++;
+        // Tenta por até 12 segundos (20 tentativas de 600ms)
         if (sucesso || tentativas > 20) clearInterval(intervalo);
     }, 600);
 }
@@ -39,7 +39,6 @@ function executarPreenchimento(res) {
     return false;
 }
 
-// --- 2. CONFIGURAÇÕES ---
 
 const textoPadraoEmail = `Dear visitor,
 
@@ -68,10 +67,33 @@ function findInputByMuiText(term) {
         const container = target.closest('.MuiFormControl-root, .MuiTextField-root, div.MuiGrid-item');
         if (container) {
             const input = container.querySelector('input');
-            if (input) return input;
+            const trigger = container.querySelector('[role="button"], [role="combobox"], .MuiSelect-select');
+            return { input, trigger };
         }
     }
     return null;
+}
+
+// Função para clicar e selecionar em Barras (País e Sexo)
+async function selecionarBarraMui(labelBusca, valorAlvo) {
+    const f = findInputByMuiText(labelBusca);
+    if (!f) return;
+
+    const elClique = f.trigger || f.input;
+    if (elClique) {
+        elClique.focus();
+        elClique.click();
+
+        // Aguarda a lista de opções "nascer" no HTML
+        setTimeout(() => {
+            const opcoes = Array.from(document.querySelectorAll('li.MuiMenuItem-root, li.MuiAutocomplete-option, [role="option"]'));
+            const alvo = opcoes.find(opt => {
+                const txt = opt.innerText.toUpperCase();
+                return txt.includes(valorAlvo.toUpperCase()) || (valorAlvo === "Brasil" && txt.includes("BRAZIL"));
+            });
+            if (alvo) alvo.click();
+        }, 600);
+    }
 }
 
 function preencherNovoSistemaICD(dados, operador, dataType) {
@@ -80,28 +102,34 @@ function preencherNovoSistemaICD(dados, operador, dataType) {
     const idReserva = dados.gyg || dados.bookingId || "";
     const refExterna = `${idReserva} - ${operador || "OPERADOR"}`;
 
+    // A. Campos de Texto e Data
     const mapeamento = [
         { busca: "E-mail", valor: dados.email },
         { busca: "Nome", valor: dados.nome },
+        { busca: "Telefone", valor: dados.telefone },
         { busca: "Número do documento", valor: idReserva },
-        { busca: "Referência Externa", valor: refExterna }
+        { busca: "Referência Externa", valor: refExterna },
+        { busca: "nascimento", valor: "01/01/2001" } // Padronizado
     ];
 
     let count = 0;
     mapeamento.forEach(item => {
-        const input = findInputByMuiText(item.busca);
-        if (input) {
-            forceReactValue(input, item.valor);
+        const f = findInputByMuiText(item.busca);
+        if (f && f.input) {
+            forceReactValue(f.input, item.valor);
             count++;
         }
     });
+
+    selecionarBarraMui("País", "Brasil");
+    setTimeout(() => selecionarBarraMui("Sexo", "Não informado"), 800);
 
     if (count > 0) {
         prepararDadosEmail(idReserva, dados.nome, dados.email);
         setTimeout(() => {
             const keys = dataType === "GYG" ? ["dadosPedido"] : ["bridgeData", "reservaGrayline"];
             chrome.storage.local.remove(keys);
-        }, 3000);
+        }, 5000);
         return true;
     }
     return false;
@@ -117,10 +145,7 @@ function preencherAposTexto(numero, valor) {
         const inputCorreto = inputs.find(input => 
             elementoAlvo.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING
         );
-
-        if (inputCorreto) {
-            forceReactValue(inputCorreto, valor);
-        }
+        if (inputCorreto) forceReactValue(inputCorreto, valor);
     }
 }
 
@@ -137,7 +162,6 @@ function preencherCamposGYG(dados, nomeOperador) {
         const el = document.getElementsByName(c.nome)[0];
         if (el) forceReactValue(el, c.valor);
     });
-
     prepararDadosEmail(dados.gyg, dados.nome, dados.email);
     setTimeout(() => { chrome.storage.local.remove("dadosPedido"); }, 2000);
 }
@@ -145,28 +169,27 @@ function preencherCamposGYG(dados, nomeOperador) {
 function preencherHeadoutGrayline(d, nomeUsuario) {
     if (!d || !d.nome) return;
     const operador = nomeUsuario || "Sem Nome";
-    
     preencherAposTexto(2, d.nome);
     preencherAposTexto(3, d.bookingId);
     preencherAposTexto(4, d.email);
-    
-    const valorFormatadoCV = `${d.bookingId} - ${operador}`;
-    preencherAposTexto(15, valorFormatadoCV);
-    
+    preencherAposTexto(15, `${d.bookingId} - ${operador}`);
     prepararDadosEmail(d.bookingId, d.nome, d.email);
-
-    console.log("✅ Preenchimento concluído! Dados de e-mail preparados.");
-    setTimeout(() => { 
-        chrome.storage.local.remove(["bridgeData", "reservaGrayline"]); 
-    }, 2000);
+    setTimeout(() => { chrome.storage.local.remove(["bridgeData", "reservaGrayline"]); }, 2000);
 }
 
 
 function forceReactValue(input, value) {
-    if (!input) return;
+    if (!input || !value) return;
+    
+    let valorFinal = value;
+    // Fix para campos de data (HTML5 exige YYYY-MM-DD)
+    if (value === "01/01/2001" || input.type === "date") {
+        valorFinal = "2001-01-01";
+    }
+
     input.focus();
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-    nativeInputValueSetter.call(input, value);
+    nativeInputValueSetter.call(input, valorFinal);
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
     input.blur();
@@ -187,7 +210,6 @@ function renomear() {
     const regNome = /Nome Completo:\s*([^\n\r]+)/i;
     const mCod = texto.match(regCod);
     const mNome = texto.match(regNome);
-
     if (mCod && mNome) {
         const resultado = `${mCod[1].trim()} - ${mNome[1].trim().toUpperCase()}`;
         document.title = resultado;
