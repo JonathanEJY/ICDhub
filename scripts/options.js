@@ -1,4 +1,4 @@
-// ========== options.js - Versão com Pastas, Anotações e CPF/CNPJ ==========
+// ========== options.js - Versão com Pastas, Anotações, CPF/CNPJ/Passaporte, Organização e E-mail ==========
 
 // Inicialização principal
 document.addEventListener("DOMContentLoaded", () => {
@@ -8,7 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
   carregarNotas();
   inicializarEventos();
   renderizarListaPasseios();
-  configurarMascaraDocumento(); // 🚀 NOVA FUNÇÃO
+  configurarMascaraDocumento();
+  carregarPastasParaOrganizar();
 });
 
 // ==================== Sistema de Tabs ====================
@@ -26,7 +27,121 @@ function inicializarTabs() {
   });
 }
 
-// ==================== 🚀 MÁSCARA DINÂMICA CPF/CNPJ ====================
+// ==================== 🚀 ORGANIZAR BOTÕES POR PASTA (COM NÚMERO DE ORDEM) ====================
+function carregarPastasParaOrganizar() {
+    const select = document.getElementById("selectOrganizarPasta");
+    if (!select) return;
+
+    chrome.storage.local.get(["listaPastas"], (res) => {
+        const pastas = res.listaPastas || [];
+        select.innerHTML = '<option value="">Selecione...</option>';
+        pastas.forEach(pasta => {
+            const option = document.createElement("option");
+            option.value = pasta;
+            option.textContent = pasta;
+            select.appendChild(option);
+        });
+
+        const optionGeral = document.createElement("option");
+        optionGeral.value = "Geral";
+        optionGeral.textContent = "Geral (Sem Pasta)";
+        select.appendChild(optionGeral);
+    });
+
+    select.onchange = () => {
+        renderizarBotoesDaPastaParaOrganizar(select.value);
+    };
+}
+
+function renderizarBotoesDaPastaParaOrganizar(nomePasta) {
+    const container = document.getElementById("listaOrganizarBotoes");
+    if (!container) return;
+
+    if (!nomePasta) {
+        container.innerHTML = '<div class="lista-vazia"><i class="fas fa-hand-pointer"></i><p>Selecione uma pasta acima para ver os botões.</p></div>';
+        return;
+    }
+
+    chrome.storage.local.get(["configMaster"], (res) => {
+        const botoes = res.configMaster || [];
+        const botoesDaPasta = botoes.filter(b => (b.pasta || "Geral") === nomePasta);
+
+        if (botoesDaPasta.length === 0) {
+            container.innerHTML = '<div class="lista-vazia"><i class="fas fa-inbox"></i><p>Nenhum botão nesta pasta ainda.</p></div>';
+            return;
+        }
+
+        container.innerHTML = "";
+        botoesDaPasta.forEach((botao, index) => {
+            const item = document.createElement("div");
+            item.style = "display: flex; align-items: center; gap: 10px; background: rgba(15, 23, 42, 0.6); padding: 10px 15px; border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.2);";
+            
+            item.innerHTML = `
+                <input type="number" class="input-ordem-painel" data-id="${botao.id}" value="${index + 1}" min="1" style="width: 50px; padding: 8px; text-align: center; font-weight: bold; color: #a78bfa; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 6px; font-size: 14px; outline: none; font-family: 'Inter', sans-serif;">
+                <span style="flex: 1; color: #f1f5f9; font-size: 13px;">${escapeHtml(botao.nome)}</span>
+            `;
+            container.appendChild(item);
+        });
+
+        container.querySelectorAll('.input-ordem-painel').forEach(input => {
+            const idBotao = input.dataset.id;
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    moverBotaoParaPosicao(idBotao, input.value, nomePasta);
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                moverBotaoParaPosicao(idBotao, input.value, nomePasta);
+            });
+
+            input.addEventListener('focus', () => {
+                input.select();
+            });
+        });
+    });
+}
+
+function moverBotaoParaPosicao(idBotao, novaPosicao, nomePasta) {
+    const pos = parseInt(novaPosicao);
+    if (isNaN(pos) || pos < 1) {
+        renderizarBotoesDaPastaParaOrganizar(nomePasta);
+        return;
+    }
+
+    chrome.storage.local.get(["configMaster"], (res) => {
+        let botoes = res.configMaster || [];
+        
+        const botoesDaPasta = botoes.filter(b => (b.pasta || "Geral") === nomePasta);
+        const outrosBotoes = botoes.filter(b => (b.pasta || "Geral") !== nomePasta);
+
+        const idxAtual = botoesDaPasta.findIndex(b => b.id === idBotao);
+        if (idxAtual === -1) return;
+
+        let novoIdx = pos - 1;
+        if (novoIdx < 0) novoIdx = 0;
+        if (novoIdx >= botoesDaPasta.length) novoIdx = botoesDaPasta.length - 1;
+
+        if (novoIdx === idxAtual) {
+            renderizarBotoesDaPastaParaOrganizar(nomePasta);
+            return;
+        }
+
+        const [botaoMovido] = botoesDaPasta.splice(idxAtual, 1);
+        botoesDaPasta.splice(novoIdx, 0, botaoMovido);
+
+        const listaFinal = [...outrosBotoes, ...botoesDaPasta];
+        chrome.storage.local.set({ configMaster: listaFinal }, () => {
+            renderizarBotoesDaPastaParaOrganizar(nomePasta);
+            renderizarListaAtalhos();
+            mostrarNotificacao(`✅ Botão movido para a posição ${novoIdx + 1}`, 'success');
+        });
+    });
+}
+
+// ==================== 🚀 MÁSCARA DINÂMICA CPF/CNPJ/PASSAPORTE ====================
 function configurarMascaraDocumento() {
   const selectTipoDoc = document.getElementById("reciboTipoDocumento");
   const inputDoc = document.getElementById("reciboDocumento");
@@ -34,20 +149,26 @@ function configurarMascaraDocumento() {
   if (!selectTipoDoc || !inputDoc) return;
 
   function aplicarMascara() {
-    let valor = inputDoc.value.replace(/\D/g, ''); // Remove tudo que não é número
     const tipo = selectTipoDoc.value;
 
+    if (tipo === 'PASSAPORTE') {
+      inputDoc.value = inputDoc.value.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 20);
+      inputDoc.placeholder = "Ex: AB123456";
+      inputDoc.maxLength = 20;
+      return;
+    }
+
+    let valor = inputDoc.value.replace(/\D/g, '');
+
     if (tipo === 'CPF') {
-      // Máscara CPF: 000.000.000-00
-      valor = valor.substring(0, 11); // Limita a 11 dígitos
+      valor = valor.substring(0, 11);
       valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
       valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
       valor = valor.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
       inputDoc.placeholder = "000.000.000-00";
       inputDoc.maxLength = 14;
-    } else {
-      // Máscara CNPJ: 00.000.000/0000-00
-      valor = valor.substring(0, 14); // Limita a 14 dígitos
+    } else if (tipo === 'CNPJ') {
+      valor = valor.substring(0, 14);
       valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
       valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
       valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
@@ -58,10 +179,7 @@ function configurarMascaraDocumento() {
     inputDoc.value = valor;
   }
 
-  // Aplica ao digitar
   inputDoc.addEventListener('input', aplicarMascara);
-  
-  // Reseta o campo quando troca o tipo (para não misturar máscaras)
   selectTipoDoc.addEventListener('change', () => {
     inputDoc.value = '';
     aplicarMascara();
@@ -73,11 +191,8 @@ function carregarPastasNoSelect() {
     const select = document.getElementById("selectPastaBotao");
     if (!select) return;
 
-    const pastasPadrao = [];
-
     chrome.storage.local.get(["listaPastas"], (res) => {
-        const pastas = res.listaPastas || pastasPadrao;
-        
+        const pastas = res.listaPastas || [];
         select.innerHTML = '<option value="Geral">Geral (Sem Pasta)</option>';
         pastas.forEach(pasta => {
             const option = document.createElement("option");
@@ -88,7 +203,6 @@ function carregarPastasNoSelect() {
     });
 }
 
-// Ação do botão "Nova Pasta"
 document.getElementById("btnNovaPasta")?.addEventListener("click", () => {
     const nomePasta = prompt("Digite o nome da nova pasta:");
     if (nomePasta && nomePasta.trim()) {
@@ -100,6 +214,7 @@ document.getElementById("btnNovaPasta")?.addEventListener("click", () => {
                 pastas.push(nomeLimpo);
                 chrome.storage.local.set({ listaPastas: pastas }, () => {
                     carregarPastasNoSelect();
+                    carregarPastasParaOrganizar();
                     document.getElementById("selectPastaBotao").value = nomeLimpo;
                     mostrarNotificacao(`📁 Pasta "${nomeLimpo}" criada!`, 'success');
                 });
@@ -225,7 +340,6 @@ function renderizarListaAtalhos() {
     
     container.innerHTML = "";
 
-    // Agrupar botões por pasta
     const grupos = {};
     configBotoes.forEach((botao, index) => {
         botao._originalIndex = index; 
@@ -234,7 +348,6 @@ function renderizarListaAtalhos() {
         grupos[pasta].push(botao);
     });
 
-    // Renderizar cada grupo
     for (const [nomePasta, botoes] of Object.entries(grupos)) {
         const headerPasta = document.createElement("div");
         headerPasta.className = "pasta-header-painel";
@@ -339,7 +452,7 @@ function salvarShortcuts() {
   });
 }
 
-// ==================== RECIBO PDF (ATUALIZADO COM SELETOR CPF/CNPJ) ====================
+// ==================== RECIBO PDF ====================
 function gerarReciboPDF() {
   if (typeof window.jspdf === 'undefined') {
     console.error('jsPDF não encontrado!');
@@ -374,14 +487,12 @@ function gerarReciboPDF() {
     const dataCompra = document.getElementById("reciboDataCompra")?.value;
     const dataVisita = document.getElementById("reciboDataVisita")?.value;
     
-    // 🚀 NOVO: Pega o tipo de documento (CPF ou CNPJ) e o número
     const tipoDocumento = document.getElementById("reciboTipoDocumento")?.value || "CPF";
     const numeroDocumento = document.getElementById("reciboDocumento")?.value || "NÃO INFORMADO";
     
     const dataCompraFormatada = dataCompra ? dataCompra.split('-').reverse().join('/') : "___/___/____";
     const dataVisitaFormatada = dataVisita ? dataVisita.split('-').reverse().join('/') : "___/___/____";
     
-    // 🚀 ALTERAÇÃO: Usa o tipoDocumento dinamicamente na frase
     const textoDeclaracao = `O GRUPO ICD, inscrito no CNPJ 10.335.415/0001-70, declara ter recebido os valores descritos abaixo,\nreferente ao pagamento via ${pagamento} pago por ${nomeCliente.toUpperCase()}, inscrito no ${tipoDocumento}: ${numeroDocumento}.`;
     const splitTexto = doc.splitTextToSize(textoDeclaracao, 170);
     doc.text(splitTexto, 20, 55);
@@ -528,14 +639,13 @@ function renderizarListaPasseios() {
 
 // ==================== INICIALIZAÇÃO DE EVENTOS ====================
 function inicializarEventos() {
-  // Botão Salvar Atalho (AGORA COM PASTA)
   const btnSalvarAtalho = document.getElementById("btnAdicionarBotao");
   if (btnSalvarAtalho) {
     btnSalvarAtalho.addEventListener("click", () => {
       const nome = document.getElementById("novoNomeBotao").value.trim();
       const texto = document.getElementById("novoTextoBotao").value.trim();
       const imagem = document.getElementById("novaImagemBotao").value.trim();
-      const pasta = document.getElementById("selectPastaBotao").value; // Pega a pasta
+      const pasta = document.getElementById("selectPastaBotao").value;
       const idx = parseInt(document.getElementById("editIndex").value);
       
       if (nome && texto) {
@@ -544,7 +654,7 @@ function inicializarEventos() {
           nome,
           texto,
           imagem: imagem || null,
-          pasta: pasta, // Salva a pasta no objeto
+          pasta: pasta,
           isExtra: true,
         };
         if (idx === -1) configBotoes.push(dadosBotao);
@@ -558,15 +668,12 @@ function inicializarEventos() {
     });
   }
   
-  // Cancelar edição
   const btnCancelar = document.getElementById("btnCancelarEdicao");
   if (btnCancelar) btnCancelar.addEventListener("click", limparFormularioAtalho);
   
-  // Botão Adicionar Nota
   const btnAddNota = document.getElementById("btnAdicionarNota");
   if (btnAddNota) btnAddNota.addEventListener("click", adicionarNota);
   
-  // Backup & Restauração
   const btnExportar = document.getElementById("btnExportar");
   const inputArquivo = document.getElementById("inputArquivo");
   if (btnExportar) {
@@ -605,7 +712,6 @@ function inicializarEventos() {
     });
   }
   
-  // Preferência de posição da barra
   const seletorPosicao = document.getElementById("posicaoBarra");
   const btnSalvarPref = document.getElementById("btnSalvarPref");
   if (seletorPosicao && btnSalvarPref) {
@@ -619,7 +725,7 @@ function inicializarEventos() {
     });
   }
   
-  // Configurações de e-mail
+  // 🚀 E-mail continua funcionando normalmente
   const btnSalvarEmail = document.getElementById("btnSalvarEmailConfig");
   if (btnSalvarEmail) {
     chrome.storage.local.get(["emailAssunto", "emailCorpo"], (res) => {
@@ -635,12 +741,10 @@ function inicializarEventos() {
     });
   }
   
-  // Gerador de Recibo (PDF)
   const btnGerarPDF = document.getElementById("btnGerarPDF");
   if (btnGerarPDF) btnGerarPDF.addEventListener("click", gerarReciboPDF);
 }
 
-// Botão salvar passeio
 document.getElementById("btn-salvar-passeio")?.addEventListener("click", () => {
   const nome = document.getElementById("nomePasseio").value;
   const tipos = document.querySelectorAll(".tipo-ingresso");

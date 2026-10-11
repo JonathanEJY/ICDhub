@@ -17,6 +17,8 @@ menu.id = 'menu-automacao-hub';
 
 // Variável para controlar a pasta ativa no WhatsApp
 let pastaAtiva = null;
+// Variável para controlar o índice da pasta sendo arrastada
+let dragPastaSrcIndex = null;
 
 // Função para injetar o texto na caixa do WhatsApp
 function enviarTexto(txt) {
@@ -51,22 +53,142 @@ menu.innerHTML = `
             display: flex; align-items: center; justify-content: space-between;
             background: linear-gradient(135deg, #4c1d95, #2e1065);
             color: white; padding: 12px 15px; border-radius: 8px;
-            margin-bottom: 8px; cursor: pointer; font-weight: 600;
+            margin-bottom: 8px; cursor: grab; font-weight: 600;
             font-size: 13px; border: 1px solid #6d28d9; transition: all 0.2s;
         }
+        .btn-pasta-hub:active { cursor: grabbing; }
         .btn-pasta-hub:hover {
             background: linear-gradient(135deg, #5b21b6, #3b0764);
             transform: translateY(-2px); box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
         }
-        .btn-pasta-hub span:last-child { font-size: 10px; opacity: 0.7; }
-        .btn-voltar-pasta {
-            display: flex; align-items: center; gap: 8px;
-            background: rgba(255, 255, 255, 0.1); color: #a78bfa;
-            padding: 8px 12px; border-radius: 6px; margin-bottom: 12px;
-            cursor: pointer; font-size: 12px; font-weight: 500;
-            border: 1px solid rgba(167, 139, 250, 0.2);
+        .btn-pasta-hub.dragging { opacity: 0.4; border: 1px dashed #c4b5fd; }
+        .btn-pasta-hub.drag-over {
+            border-top: 3px solid #c4b5fd;
+            background: linear-gradient(135deg, #6d28d9, #4c1d95);
         }
-        .btn-voltar-pasta:hover { background: rgba(255, 255, 255, 0.15); color: #c4b5fd; }
+        .btn-pasta-hub span:last-child { font-size: 10px; opacity: 0.7; }
+        
+        /* CABEÇALHO DA PASTA ATIVA (ALINHADO) */
+        .header-pasta-ativa {
+            display: flex; align-items: center;
+            background: linear-gradient(135deg, #6d28d9, #4c1d95);
+            color: white;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin: 0 10px 12px 10px;
+            border: 1px solid #8b5cf6;
+            box-shadow: 0 2px 8px rgba(109, 40, 217, 0.3);
+            gap: 10px;
+        }
+        .btn-voltar-pasta {
+            display: flex; align-items: center; justify-content: center;
+            width: 26px; height: 26px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            border: none;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            padding: 0;
+            line-height: 1;
+        }
+        .btn-voltar-pasta:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-2px);
+        }
+        .titulo-pasta-ativa {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .icone-pasta-ativa {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* ESTILOS DO MODAL DA CALCULADORA (ARRASTÁVEL E MINIMIZÁVEL) */
+        #modal-cotacao-icd {
+            position: fixed;
+            top: 80px;
+            left: calc(100% - 400px);
+            width: 350px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 20000;
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+        #modal-cotacao-icd.minimizado {
+            height: auto !important;
+            width: 220px;
+        }
+        #modal-cotacao-icd.minimizado .corpo-modal {
+            display: none;
+        }
+        .cabecalho-modal {
+            background: linear-gradient(135deg, #612d87, #4c1d95);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            user-select: none;
+        }
+        .cabecalho-modal h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .controles-modal {
+            display: flex;
+            gap: 6px;
+        }
+        .controles-modal button {
+            width: 24px; height: 24px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            padding: 0;
+        }
+        .controles-modal button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .controles-modal button.fechar:hover {
+            background: #ef4444;
+        }
+        .corpo-modal {
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
     </style>
 `;
 
@@ -136,35 +258,73 @@ function handleImageDragBase64(e, imgElement, urlImagem) {
     }
 }
 
-// --- Renderizar Botões (COM PASTAS) ---
+// --- Renderizar Botões (COM PASTAS E DRAG & DROP DE PASTAS) ---
 function carregarBotoes() {
     chrome.storage.local.get(['configMaster', 'listaPastas'], (res) => {
         const container = document.getElementById('container-botoes-hub');
         const inputBusca = document.getElementById('busca-botoes');
         const botoes = res.configMaster || [];
-        
-        // 🚀 ALTERAÇÃO: Começa com array VAZIO em vez de pastas pré-prontas
         const pastas = res.listaPastas || [];
 
         function renderizar(filtro = "") {
             container.innerHTML = "";
             
-            // Se não houver filtro E não houver pasta ativa, mostra as pastas
             if (!filtro && !pastaAtiva) {
-                
-                // Renderiza cada pasta criada pelo usuário
-                pastas.forEach(nomePasta => {
+                pastas.forEach((nomePasta, index) => {
                     const btnPasta = document.createElement('div');
                     btnPasta.className = 'btn-pasta-hub';
+                    btnPasta.draggable = true;
+                    btnPasta.dataset.index = index;
+                    btnPasta.dataset.nome = nomePasta;
                     btnPasta.innerHTML = `<span>📁</span> <span>${nomePasta}</span> <span>▶</span>`;
-                    btnPasta.onclick = () => {
+                    
+                    btnPasta.onclick = (e) => {
+                        if (e.target.closest('.dragging')) return; 
                         pastaAtiva = nomePasta;
                         renderizar(); 
                     };
+
+                    btnPasta.addEventListener('dragstart', (e) => {
+                        dragPastaSrcIndex = index;
+                        btnPasta.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', nomePasta);
+                    });
+
+                    btnPasta.addEventListener('dragend', () => {
+                        btnPasta.classList.remove('dragging');
+                        document.querySelectorAll('.btn-pasta-hub').forEach(el => el.classList.remove('drag-over'));
+                    });
+
+                    btnPasta.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (dragPastaSrcIndex !== index) {
+                            btnPasta.classList.add('drag-over');
+                        }
+                    });
+
+                    btnPasta.addEventListener('dragleave', () => {
+                        btnPasta.classList.remove('drag-over');
+                    });
+
+                    btnPasta.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        btnPasta.classList.remove('drag-over');
+                        if (dragPastaSrcIndex === null || dragPastaSrcIndex === index) return;
+
+                        const pastasAtualizadas = [...pastas];
+                        const itemMovido = pastasAtualizadas.splice(dragPastaSrcIndex, 1)[0];
+                        pastasAtualizadas.splice(index, 0, itemMovido);
+
+                        chrome.storage.local.set({ listaPastas: pastasAtualizadas }, () => {
+                            carregarBotoes();
+                        });
+                    });
+
                     container.appendChild(btnPasta);
                 });
 
-                // Renderiza botões sem pasta (Geral)
                 const botoesGeral = botoes.filter(b => !b.pasta || b.pasta === "Geral");
                 if (botoesGeral.length > 0) {
                     const btnPastaGeral = document.createElement('div');
@@ -179,27 +339,33 @@ function carregarBotoes() {
                 return;
             }
 
-            // Se uma pasta estiver ativa, mostra os botões dela
             let botoesParaMostrar = [];
             if (pastaAtiva) {
-                // Botão de Voltar
-                const btnVoltar = document.createElement('div');
+                const headerPasta = document.createElement('div');
+                headerPasta.className = 'header-pasta-ativa';
+                
+                const btnVoltar = document.createElement('button');
                 btnVoltar.className = 'btn-voltar-pasta';
-                btnVoltar.innerHTML = `<span>◀</span> <span>Voltar para Pastas</span>`;
+                btnVoltar.innerHTML = '◀';
+                // 🚀 REMOVIDO o title="Voltar para Pastas"
                 btnVoltar.onclick = () => {
                     pastaAtiva = null;
                     renderizar(inputBusca.value); 
                 };
-                container.appendChild(btnVoltar);
                 
-                // Filtra botões da pasta ativa
+                const tituloPasta = document.createElement('span');
+                tituloPasta.className = 'titulo-pasta-ativa';
+                tituloPasta.innerHTML = `<span class="icone-pasta-ativa">📁</span> ${pastaAtiva}`;
+                
+                headerPasta.appendChild(btnVoltar);
+                headerPasta.appendChild(tituloPasta);
+                container.appendChild(headerPasta);
+                
                 botoesParaMostrar = botoes.filter(b => (b.pasta || "Geral") === pastaAtiva);
             } else {
-                // Se estiver buscando, ignora pastas e busca em todos
                 botoesParaMostrar = botoes;
             }
 
-            // Aplica filtro de busca
             if (filtro) {
                 botoesParaMostrar = botoesParaMostrar.filter(b => b.nome.toLowerCase().includes(filtro.toLowerCase()));
             }
@@ -212,8 +378,7 @@ function carregarBotoes() {
                 return;
             }
 
-            // Renderiza os botões
-            botoesParaMostrar.forEach(b => {
+            botoesParaMostrar.forEach((b) => {
                 const btnWrapper = document.createElement('div');
                 btnWrapper.style = "display: flex; align-items: center; gap: 5px; margin-bottom: 8px; padding: 0 10px;";
 
@@ -229,7 +394,7 @@ function carregarBotoes() {
                     const imgPreview = document.createElement('img');
                     imgPreview.src = urlImagem;
                     imgPreview.crossOrigin = "anonymous";
-                    imgPreview.title = "Clique e arraste para enviar esta imagem";
+                    // 🚀 REMOVIDO o title="Clique e arraste para enviar esta imagem"
                     imgPreview.draggable = true;
                     imgPreview.style = "width: 35px; height: 35px; border-radius: 4px; cursor: grab; border: 2px solid #612d87; object-fit: cover; background: white;";
                     
@@ -242,7 +407,7 @@ function carregarBotoes() {
                 }
 
                 btn.onclick = () => enviarTexto(b.texto || textosPadrao[b.id] || "");
-                btnWrapper.prepend(btn); 
+                btnWrapper.appendChild(btn);
                 container.appendChild(btnWrapper);
             });
         }
@@ -259,34 +424,108 @@ function carregarBotoes() {
 }
 
 /* =========================================================
-   ICD HUB - CALCULADORA DE COTAÇÃO
+   ICD HUB - CALCULADORA DE COTAÇÃO (ARRASTÁVEL E MINIMIZÁVEL)
    ========================================================= */
 function abrirCalculadoraCotacao() {
     chrome.storage.local.get(['listaPasseios'], (res) => {
         const passeios = res.listaPasseios || [];
         
-        if (document.getElementById('modal-cotacao-icd')) return;
+        // Se já existir, apenas traz para frente
+        const modalExistente = document.getElementById('modal-cotacao-icd');
+        if (modalExistente) {
+            modalExistente.style.zIndex = 20000 + Date.now() % 1000;
+            return;
+        }
 
         const modal = document.createElement('div');
         modal.id = 'modal-cotacao-icd';
-        modal.style = "position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 350px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20000; padding: 20px; font-family: sans-serif; color: #333;";
         
         modal.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <h3 style="margin:0; color:#612d87;">🧮 Calculadora de Cotação</h3>
-                <span id="fechar-cotacao" style="cursor:pointer; font-weight:bold; font-size: 18px;">&times;</span>
+            <div class="cabecalho-modal" id="cabecalho-modal-cotacao">
+                <h3>🧮 Calculadora de Cotação</h3>
+                <div class="controles-modal">
+                    <button id="btn-minimizar-cotacao">—</button>
+                    <button id="btn-fechar-cotacao" class="fechar">✕</button>
+                </div>
             </div>
-            <select id="select-passeio-cotacao" style="width:100%; padding:10px; border-radius:5px; margin-bottom:15px; border: 1px solid #ddd;">
-                <option value="">Selecione um Passeio...</option>
-                ${passeios.map((p, i) => `<option value="${i}">${p.nome}</option>`).join('')}
-            </select>
-            <div id="detalhes-cotacao" style="max-height: 250px; overflow-y: auto;"></div>
-            <div id="total-cotacao" style="margin-top:15px; font-weight:bold; font-size:18px; color:#25D366; text-align:right; border-top: 1px solid #eee; padding-top: 10px;">Total: R$ 0,00</div>
-            <button id="btn-copiar-cotacao" style="width:100%; margin-top:15px; padding:12px; background:#612d87; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">📋 Copiar para o WhatsApp</button>
+            
+            <div class="corpo-modal">
+                <select id="select-passeio-cotacao" style="width:100%; padding:10px; border-radius:8px; margin-bottom:15px; border: 1px solid #ddd; font-family: 'Inter', sans-serif;">
+                    <option value="">Selecione um Passeio...</option>
+                    ${passeios.map((p, i) => `<option value="${i}">${p.nome}</option>`).join('')}
+                </select>
+                <div id="detalhes-cotacao" style="max-height: 250px; overflow-y: auto;"></div>
+                <div id="total-cotacao" style="margin-top:15px; font-weight:bold; font-size:18px; color:#25D366; text-align:right; border-top: 1px solid #eee; padding-top: 10px;">Total: R$ 0,00</div>
+                <button id="btn-copiar-cotacao" style="width:100%; margin-top:15px; padding:12px; background:#612d87; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family: 'Inter', sans-serif;">📋 Copiar para o WhatsApp</button>
+            </div>
         `;
         
         document.body.appendChild(modal);
 
+        // ============================================================
+        // LÓGICA DE ARRASTAR (DRAG)
+        // ============================================================
+        const cabecalho = modal.querySelector('#cabecalho-modal-cotacao');
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        cabecalho.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button')) return;
+            
+            isDragging = true;
+            const rect = modal.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            
+            modal.style.transition = 'none';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            let newLeft = e.clientX - offsetX;
+            let newTop = e.clientY - offsetY;
+            
+            const maxLeft = window.innerWidth - modal.offsetWidth;
+            const maxTop = window.innerHeight - modal.offsetHeight;
+            
+            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            newTop = Math.max(0, Math.min(newTop, maxTop));
+            
+            modal.style.left = newLeft + 'px';
+            modal.style.top = newTop + 'px';
+            modal.style.right = 'auto';
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            document.body.style.userSelect = '';
+        });
+
+        // ============================================================
+        // LÓGICA DE MINIMIZAR (SEM TITLE)
+        // ============================================================
+        const btnMinimizar = modal.querySelector('#btn-minimizar-cotacao');
+        btnMinimizar.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modal.classList.toggle('minimizado');
+            btnMinimizar.innerText = modal.classList.contains('minimizado') ? '▢' : '—';
+        });
+
+        // ============================================================
+        // LÓGICA DE FECHAR (SEM TITLE)
+        // ============================================================
+        const btnFechar = modal.querySelector('#btn-fechar-cotacao');
+        btnFechar.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modal.remove();
+        });
+
+        // ============================================================
+        // LÓGICA DE COTAÇÃO
+        // ============================================================
         const select = modal.querySelector('#select-passeio-cotacao');
         const detalhes = modal.querySelector('#detalhes-cotacao');
         const totalTxt = modal.querySelector('#total-cotacao');
@@ -296,7 +535,7 @@ function abrirCalculadoraCotacao() {
             if (!p) { detalhes.innerHTML = ""; return; }
             
             detalhes.innerHTML = p.ingressos.map((ing) => `
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; background: #f9f9f9; padding: 8px; border-radius: 5px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; background: #f9f9f9; padding: 8px; border-radius: 8px;">
                     <div style="font-size: 13px;">
                         <span style="display:block; font-weight:bold;">${ing.tipo}</span>
                         <span style="color: #666;">R$ ${ing.valor}</span>
@@ -339,10 +578,16 @@ function abrirCalculadoraCotacao() {
             texto += `\n*💰 TOTAL: R$ ${total.toLocaleString('pt-br', {minimumFractionDigits: 2})}*`;
             
             navigator.clipboard.writeText(texto);
-            alert("Orçamento copiado! Agora é só colar (Ctrl+V) no WhatsApp.");
+            
+            const btn = modal.querySelector('#btn-copiar-cotacao');
+            const textoOriginal = btn.innerText;
+            btn.innerText = '✅ Copiado!';
+            btn.style.background = '#25D366';
+            setTimeout(() => {
+                btn.innerText = textoOriginal;
+                btn.style.background = '#612d87';
+            }, 1500);
         };
-
-        modal.querySelector('#fechar-cotacao').onclick = () => modal.remove();
     });
 }
 

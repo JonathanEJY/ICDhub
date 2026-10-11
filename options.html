@@ -37,6 +37,10 @@
         <button class="tab-btn" data-target="sec-anotacoes">
           <i class="fas fa-sticky-note"></i> Anotações
         </button>
+        <!-- 🚀 NOVA ABA DE E-MAIL -->
+        <button class="tab-btn" data-target="sec-email">
+          <i class="fas fa-envelope"></i> E-mail
+        </button>
         <button class="tab-btn" data-target="sec-config">
           <i class="fas fa-cog"></i> Configurações
         </button>
@@ -113,6 +117,26 @@
               </div>
             </div>
           </div>
+
+          <!-- ÁREA: ORGANIZAR BOTÕES POR PASTA -->
+          <div class="card" style="margin-top: 20px;">
+            <h3><i class="fas fa-sort-amount-down"></i> Organizar Botões por Pasta</h3>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">
+              Selecione uma pasta abaixo para visualizar e reordenar os botões que estão dentro dela. Digite o número desejado e pressione Enter.
+            </p>
+            
+            <label>Escolha uma Pasta</label>
+            <select id="selectOrganizarPasta" style="width: 100%; padding: 12px; border-radius: 8px; background: #1e293b; border: 1px solid #334155; color: white; font-family: 'Inter', sans-serif; margin-bottom: 15px;">
+              <option value="">Selecione...</option>
+            </select>
+
+            <div id="listaOrganizarBotoes" style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="lista-vazia">
+                <i class="fas fa-hand-pointer"></i>
+                <p>Selecione uma pasta acima para ver os botões.</p>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- SEÇÃO 2: COTAÇÃO -->
@@ -173,13 +197,14 @@
               <div><label>Método de Pagamento</label><select id="reciboPagamento"><option value="PIX">PIX</option><option value="CARTÃO DE CRÉDITO">CARTÃO DE CRÉDITO</option><option value="TED">TED</option></select></div>
               <div><label>Nome do Cliente</label><input type="text" id="reciboNome" placeholder="Nome Completo" /></div>
               
-              <!-- CAMPO DE DOCUMENTO ATUALIZADO COM SELETOR CPF/CNPJ -->
+              <!-- CAMPO DE DOCUMENTO COM SELETOR CPF/CNPJ/PASSAPORTE -->
               <div>
-                <label>Documento (CPF/CNPJ)</label>
+                <label>Documento (CPF/CNPJ/Passaporte)</label>
                 <div style="display: flex; gap: 8px;">
-                    <select id="reciboTipoDocumento" style="width: 100px; padding: 12px; border-radius: 8px; background: #1e293b; border: 1px solid #334155; color: white; font-family: 'Inter', sans-serif;">
+                    <select id="reciboTipoDocumento" style="width: 130px; padding: 12px; border-radius: 8px; background: #1e293b; border: 1px solid #334155; color: white; font-family: 'Inter', sans-serif;">
                         <option value="CPF">CPF</option>
                         <option value="CNPJ">CNPJ</option>
+                        <option value="PASSAPORTE">Passaporte</option>
                     </select>
                     <input type="text" id="reciboDocumento" placeholder="000.000.000-00" style="flex: 1;" />
                 </div>
@@ -204,7 +229,6 @@
           <div class="card">
             <h3><i class="fas fa-pencil-alt"></i> Bloco de Notas do Operador</h3>
             <div class="notas-container">
-              <!-- Área para criar nova nota -->
               <div class="nova-nota-area">
                 <h4><i class="fas fa-plus-circle"></i> Nova Anotação</h4>
                 <textarea id="novaNotaTexto" placeholder="Digite sua anotação aqui...&#10;Exemplo: Lembrar de enviar voucher para cliente João."></textarea>
@@ -215,7 +239,6 @@
                 </div>
               </div>
 
-              <!-- Lista de notas existentes -->
               <div class="lista-notas" id="listaNotasContainer">
                 <div class="lista-vazia">
                   <i class="fas fa-inbox"></i>
@@ -229,8 +252,8 @@
           </div>
         </section>
 
-        <!-- SEÇÃO 5: CONFIGS & BACKUP -->
-        <section id="sec-config" class="aba-conteudo">
+        <!-- 🚀 SEÇÃO 5: E-MAIL (NOVA) -->
+        <section id="sec-email" class="aba-conteudo">
           <div class="card">
             <h3><i class="fas fa-envelope"></i> Configuração de E-mail (Relatório)</h3>
             <label>Assunto Padrão</label>
@@ -241,8 +264,11 @@
               <i class="fas fa-paper-plane"></i> Salvar E-mail
             </button>
           </div>
+        </section>
 
-          <div class="card" style="margin-top: 20px">
+        <!-- SEÇÃO 6: CONFIGS & BACKUP -->
+        <section id="sec-config" class="aba-conteudo">
+          <div class="card">
             <h3><i class="fas fa-sliders-h"></i> Preferências do Sistema</h3>
             <label>Posição da Barra no WhatsApp</label>
             <select id="posicaoBarra">
