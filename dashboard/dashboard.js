@@ -3,6 +3,7 @@
 const SENHA_CORRETA = 'icdadmin2024rafachefe';
 const CHAVE_SALVAR_SENHA = 'dashboard_senha_salva';
 const CHAVE_OPERADORES_DESATIVADOS = 'operadores_desativados';
+const CHAVE_BOTOES_ESTORNO = 'icdRefundButtonsEnabled';
 
 // ================================================================
 // ===== SUPABASE CONFIG =====
@@ -47,6 +48,7 @@ function validarSenha() {
         document.getElementById('conteudoDashboard').classList.add('visible');
         
         carregarDados();
+        carregarStatusBotoesEstorno();
         
         input.value = '';
         erro.classList.remove('visible');
@@ -87,6 +89,44 @@ function entrarNoDashboard() {
     document.getElementById('telaLogin').style.display = 'none';
     document.getElementById('conteudoDashboard').classList.add('visible');
     carregarDados();
+    carregarStatusBotoesEstorno();
+}
+
+// ================================================================
+// ===== EXIBIÇÃO DOS BOTÕES DE ESTORNO =====
+// ================================================================
+
+function atualizarBotaoEstorno(ativo) {
+    const btn = document.getElementById('btnBotoesEstorno');
+    const status = document.getElementById('statusBotoesEstorno');
+    if (!btn || !status) return;
+
+    btn.classList.toggle('ativo', ativo);
+    status.textContent = ativo
+        ? 'Desativar botões de estorno'
+        : 'Ativar botões de estorno';
+}
+
+function carregarStatusBotoesEstorno() {
+    chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
+        // Mantém o recurso ligado para instalações que já utilizavam os botões.
+        atualizarBotaoEstorno(res[CHAVE_BOTOES_ESTORNO] !== false);
+    });
+}
+
+function toggleBotoesEstorno() {
+    chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
+        const novoStatus = res[CHAVE_BOTOES_ESTORNO] === false;
+        chrome.storage.local.set({ [CHAVE_BOTOES_ESTORNO]: novoStatus }, () => {
+            atualizarBotaoEstorno(novoStatus);
+            mostrarFeedback(
+                novoStatus
+                    ? '✅ Botões de estorno ativados neste navegador.'
+                    : '🙈 Botões de estorno ocultados neste navegador.',
+                novoStatus ? 'success' : 'warning'
+            );
+        });
+    });
 }
 
 // ================================================================
@@ -949,6 +989,11 @@ function inicializarEventos() {
     const btnModoChefe = document.getElementById('btnModoChefe');
     if (btnModoChefe) {
         btnModoChefe.addEventListener('click', toggleModoChefe);
+    }
+
+    const btnBotoesEstorno = document.getElementById('btnBotoesEstorno');
+    if (btnBotoesEstorno) {
+        btnBotoesEstorno.addEventListener('click', toggleBotoesEstorno);
     }
     
     const senhaInput = document.getElementById('senhaDashboard');

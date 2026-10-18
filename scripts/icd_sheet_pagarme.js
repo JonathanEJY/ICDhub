@@ -5,15 +5,13 @@
 (function () {
   'use strict';
 
-  if (document.getElementById('icdhub-btn-coletar-pagarme')) return;
-
   const STORAGE_KEY = 'pagarmeDadosCapturados';
+  const CHAVE_BOTOES_ESTORNO = 'icdRefundButtonsEnabled';
+  let recursoAtivo = false;
 
   // ---------- 0. Limpa cache antigo ao iniciar ----------
   // (evita pegar dados da charge anterior quando a SPA do Pagar.me
   //  ainda mantém o estado em memória)
-  chrome.storage.local.remove(STORAGE_KEY);
-
   // ---------- Descobre charge_id atual ----------
   function getChargeIdFromUrl() {
     const m = location.pathname.match(/\/charges\/(ch_[A-Za-z0-9]+)/);
@@ -23,6 +21,7 @@
 
   // ---------- 1. Escuta mensagens do MAIN world ----------
   window.addEventListener('message', (ev) => {
+    if (!recursoAtivo) return;
     if (!ev.data || !ev.data.__icdPagarme) return;
     const { acquirer, nsu, email } = ev.data;
     if (!nsu && !acquirer) return;
@@ -217,9 +216,31 @@
     document.body.appendChild(btn);
   }
 
-  if (document.body) {
-    criarBotao();
-  } else {
-    document.addEventListener('DOMContentLoaded', criarBotao);
+  function removerBotao() {
+    document.getElementById('icdhub-btn-coletar-pagarme')?.remove();
   }
+
+  function atualizarVisibilidade(ativo) {
+    recursoAtivo = ativo;
+    if (!ativo) {
+      removerBotao();
+      return;
+    }
+
+    // Evita reaproveitar dados de uma cobrança anterior quando o recurso é ativado.
+    chrome.storage.local.remove(STORAGE_KEY);
+    if (document.body) criarBotao();
+    else document.addEventListener('DOMContentLoaded', criarBotao, { once: true });
+  }
+
+  chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
+    // Instalações existentes permanecem ativas até que alguém as desative.
+    atualizarVisibilidade(res[CHAVE_BOTOES_ESTORNO] !== false);
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[CHAVE_BOTOES_ESTORNO]) {
+      atualizarVisibilidade(changes[CHAVE_BOTOES_ESTORNO].newValue !== false);
+    }
+  });
 })();

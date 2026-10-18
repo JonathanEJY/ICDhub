@@ -7,8 +7,7 @@
 (function () {
   'use strict';
 
-  // Evita duplicar o botão se o script rodar 2x
-  if (document.getElementById('icdhub-btn-coletar-icd')) return;
+  const CHAVE_BOTOES_ESTORNO = 'icdRefundButtonsEnabled';
 
   // ---------- Helpers de extração ----------
 
@@ -186,6 +185,8 @@
   // ---------- Botão flutuante ----------
 
   function criarBotao() {
+    // Evita duplicar o botão se o script rodar 2x
+    if (document.getElementById('icdhub-btn-coletar-icd')) return;
     const btn = document.createElement('button');
     btn.id = 'icdhub-btn-coletar-icd';
     btn.textContent = '📋 Copiar dados ICD';
@@ -243,10 +244,29 @@
     document.body.appendChild(btn);
   }
 
-  // Aguarda o DOM estar minimamente pronto
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', criarBotao);
-  } else {
-    criarBotao();
+  function removerBotao() {
+    document.getElementById('icdhub-btn-coletar-icd')?.remove();
   }
+
+  function atualizarVisibilidade(ativo) {
+    if (!ativo) {
+      removerBotao();
+      return;
+    }
+
+    if (document.body) criarBotao();
+    else document.addEventListener('DOMContentLoaded', criarBotao, { once: true });
+  }
+
+  chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
+    // Instalações existentes permanecem ativas até que alguém as desative.
+    atualizarVisibilidade(res[CHAVE_BOTOES_ESTORNO] !== false);
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[CHAVE_BOTOES_ESTORNO]) {
+      atualizarVisibilidade(changes[CHAVE_BOTOES_ESTORNO].newValue !== false);
+    }
+  });
+
 })();
