@@ -109,8 +109,7 @@ function atualizarBotaoEstorno(ativo) {
 
 function carregarStatusBotoesEstorno() {
     chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
-        // Mantém o recurso ligado para instalações que já utilizavam os botões.
-        atualizarBotaoEstorno(res[CHAVE_BOTOES_ESTORNO] !== false);
+        atualizarBotaoEstorno(res[CHAVE_BOTOES_ESTORNO] === true);
     });
 }
 

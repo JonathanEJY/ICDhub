@@ -234,8 +234,7 @@
   }
 
   chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
-    // Instalações existentes permanecem ativas até que alguém as desative.
-    atualizarVisibilidade(res[CHAVE_BOTOES_ESTORNO] !== false);
+    atualizarVisibilidade(res[CHAVE_BOTOES_ESTORNO] === true);
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
