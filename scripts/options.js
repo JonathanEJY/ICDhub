@@ -749,6 +749,35 @@ function inicializarEventos() {
       }, () => alert("✅ Configuração da planilha salva neste navegador."));
     });
   }
+
+  const CHAVE_BOTOES_ESTORNO = "icdRefundButtonsEnabled";
+  const btnToggleBotoesEstorno = document.getElementById("btnToggleBotoesEstorno");
+  const statusBotoesEstorno = document.getElementById("statusBotoesEstorno");
+  if (btnToggleBotoesEstorno && statusBotoesEstorno) {
+    const atualizarStatusBotoesEstorno = (ativo) => {
+      statusBotoesEstorno.textContent = ativo
+        ? "Ocultar botões de estorno"
+        : "Exibir botões de estorno";
+      btnToggleBotoesEstorno.classList.toggle("btn-principal", ativo);
+      btnToggleBotoesEstorno.classList.toggle("btn-secundario", !ativo);
+    };
+
+    chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
+      atualizarStatusBotoesEstorno(res[CHAVE_BOTOES_ESTORNO] === true);
+    });
+
+    btnToggleBotoesEstorno.addEventListener("click", () => {
+      chrome.storage.local.get([CHAVE_BOTOES_ESTORNO], (res) => {
+        const novoStatus = res[CHAVE_BOTOES_ESTORNO] !== true;
+        chrome.storage.local.set({ [CHAVE_BOTOES_ESTORNO]: novoStatus }, () => {
+          atualizarStatusBotoesEstorno(novoStatus);
+          alert(novoStatus
+            ? "✅ Botões de estorno exibidos neste navegador."
+            : "🙈 Botões de estorno ocultados neste navegador.");
+        });
+      });
+    });
+  }
   
   // 🚀 E-mail continua funcionando normalmente
   const btnSalvarEmail = document.getElementById("btnSalvarEmailConfig");
