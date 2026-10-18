@@ -680,7 +680,9 @@ function inicializarEventos() {
     btnExportar.addEventListener("click", () => {
       chrome.storage.local.get(null, (todosOsDados) => {
         if (Object.keys(todosOsDados).length === 0) return alert("Não há dados para exportar.");
-        const blob = new Blob([JSON.stringify(todosOsDados, null, 2)], { type: "application/json" });
+        const dadosParaExportar = { ...todosOsDados };
+        delete dadosParaExportar.icdAppsScriptToken;
+        const blob = new Blob([JSON.stringify(dadosParaExportar, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         const dataHora = new Date().toLocaleDateString().replace(/\//g, "-");
@@ -722,6 +724,29 @@ function inicializarEventos() {
       chrome.storage.local.set({ posicaoBarra: seletorPosicao.value }, () => {
         alert("✅ Preferência de posição salva! Atualize o WhatsApp para aplicar.");
       });
+    });
+  }
+
+  const campoUrlPlanilha = document.getElementById("icdAppsScriptUrl");
+  const campoTokenPlanilha = document.getElementById("icdAppsScriptToken");
+  const btnSalvarPlanilha = document.getElementById("btnSalvarPlanilhaEstornos");
+  if (campoUrlPlanilha && campoTokenPlanilha && btnSalvarPlanilha) {
+    chrome.storage.local.get(["icdAppsScriptUrl", "icdAppsScriptToken"], (res) => {
+      campoUrlPlanilha.value = res.icdAppsScriptUrl || "";
+      campoTokenPlanilha.value = res.icdAppsScriptToken || "";
+    });
+
+    btnSalvarPlanilha.addEventListener("click", () => {
+      const url = campoUrlPlanilha.value.trim();
+      const token = campoTokenPlanilha.value.trim();
+      if (!url || !token) {
+        alert("Informe a URL e o token da planilha.");
+        return;
+      }
+      chrome.storage.local.set({
+        icdAppsScriptUrl: url,
+        icdAppsScriptToken: token,
+      }, () => alert("✅ Configuração da planilha salva neste navegador."));
     });
   }
   
